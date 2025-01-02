@@ -34,10 +34,17 @@ function sqlstmt:parse(conn, str)
 
   assert(
     code == flags.ok,
-    ("sqlite.lua: sql statement parse, , stmt: `%s`, err: `(`%s`)`"):format(o.str, clib.last_errmsg(o.conn))
+    string.format(
+      "sqlite.lua\n(parse error): `%s` code == %d\nstatement == '%s'",
+      clib.to_str(clib.errmsg(self.conn)),
+      code,
+      self.str
+    )
   )
+
   o.pstmt = pstmt[0]
   return o
+
 end
 
 ---Resets the parsed statement. required for parsed statements to be re-executed.

@@ -605,15 +605,25 @@ function sqlite.db:select(tbl_name, spec, schema)
 
     spec = spec or {}
     spec.select = spec.keys and spec.keys or spec.select
+    local select = p.select(tbl_name, spec)
+    local st = ""
 
-    local stmt = s:parse(self.conn, p.select(tbl_name, spec))
-    s.each(stmt, function()
-      table.insert(ret, s.kv(stmt))
+    local stmt = s:parse(self.conn, select, tbl_name)
+    stmt:each(function()
+      table.insert(ret, stmt:kv())
     end)
-    s.reset(stmt)
-    if s.finalize(stmt) then
+    if tbl_name == "todos_indexer" then
+      st = stmt:expand()
+    end
+
+    stmt:reset()
+    if stmt:finalize() then
       self.modified = false
     end
+    if tbl_name == "todos_indexer" and spec.id == 3 then
+      error(st)
+    end
+
     return p.post_select(ret, schema)
   end)
 end
@@ -655,6 +665,10 @@ end
 function sqlite.db:table(tbl_name, opts)
   print "sqlite.lua sqlite:table is deprecated use sqlite:tbl instead"
   return self:tbl(tbl_name, opts)
+end
+
+function sqlite.db:last_insert_rowid()
+  return tonumber(clib.last_insert_rowid(self.conn))
 end
 
 ---Sqlite functions sugar wrappers. See `sql/strfun`

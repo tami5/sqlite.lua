@@ -13,6 +13,8 @@ local errors = {
   missing_db_object = "%s's db object is not set. set it with `%s:set_db(db)` and try again.",
   outdated_schema = "`%s` does not exists in {`%s`}, schema is outdateset `self.db.tbl_schemas[table_name]` or reload",
   auto_alter_more_less_keys = "schema defined ~= db schema. Please drop `%s` table first or set ensure to false.",
+  miss_match_pk_type = "Primary key ('%s') is of type '%s', '%s' can't be used to access %s table. RECEIVED KEY: %s",
+  no_primary_key = "%s has no primary key.",
 }
 
 for key, value in pairs(errors) do
@@ -78,6 +80,24 @@ M.auto_alter_should_have_equal_len = function(len_new, len_old, tname)
   if len_new - len_old ~= 0 then
     error(errors.auto_alter_more_less_keys:format(tname))
   end
+end
+
+M.should_match_pk_type = function(name, kt, pk, key)
+  local knotstr = kt ~= "string"
+  local knotnum = kt ~= "number"
+  local pt = pk.type
+  if not pk or not pk.type then
+    return error(errors.no_primary_key:format(name))
+  end
+
+  if
+    kt ~= "boolean"
+    and (knotstr and (pt == "string" or pt == "text") or knotnum and (pt == "number" or pt == "integer"))
+  then
+    return error(errors.miss_match_pk_type:format(pk.name, pk.type, kt, name, key))
+  end
+
+  return true
 end
 
 return M

@@ -11,6 +11,7 @@
 local u = require "sqlite.utils"
 local h = require "sqlite.helpers"
 
+local indexer = require "sqlite.tbl.indexer"
 local sqlite = {}
 
 ---@class sqlite_tbl @Main sql table class
@@ -19,6 +20,8 @@ local sqlite = {}
 ---@field mtime number: db last modified time.
 sqlite.tbl = {}
 sqlite.tbl.__index = sqlite.tbl
+
+-- TODO: Add examples to index access in sqlite.tbl.new
 
 ---Create new |sqlite_tbl| object. This object encouraged to be extend and
 ---modified by the user. overwritten method can be still accessed via
@@ -52,27 +55,19 @@ sqlite.tbl.__index = sqlite.tbl
 ---@return sqlite_tbl
 function sqlite.tbl.new(name, schema, db)
   schema = schema or {}
-
-  local t = setmetatable({
+  schema = u.if_nil(schema.schema, schema)
+  ---@type sqlite_tbl
+  local tbl = setmetatable({
     db = db,
     name = name,
-    tbl_schema = u.if_nil(schema.schema, schema),
+    tbl_schema = schema,
   }, sqlite.tbl)
 
   if db then
-    h.run(function() end, t)
+    h.run(nil, tbl)
   end
 
-  return setmetatable({}, {
-    __index = function(_, key, ...)
-      if type(key) == "string" then
-        key = key:sub(1, 2) == "__" and key:sub(3, -1) or key
-        if t[key] then
-          return t[key]
-        end
-      end
-    end,
-  })
+  return indexer(tbl)
 end
 
 ---Create or change table schema. If no {schema} is given,
@@ -466,6 +461,12 @@ end
 ---@param db sqlite_db
 function sqlite.tbl:set_db(db)
   self.db = db
+end
+
+function sqlite.tbl:last_id()
+  h.run(function()
+    rawset(self, "last_id", self.db:last_insert_rowid())
+  end, self)
 end
 
 sqlite.tbl = setmetatable(sqlite.tbl, {

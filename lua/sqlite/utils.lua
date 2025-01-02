@@ -59,6 +59,15 @@ M.okeys = function(t)
   return r
 end
 
+M.contains = function(tbl, val)
+  for _, v in ipairs(tbl) do
+    if v == val then
+      return true
+    end
+  end
+  return false
+end
+
 M.opairs = (function()
   local __gen_order_index = function(t)
     local orderedIndex = {}

@@ -616,7 +616,7 @@ ffi.cdef [[
 ]]
 
 ---@class sqlite3 @sqlite3 db object
----@class sqlite_blob @sqlite3 blob object
+---@class sqlite_blob* @sqlite3 blob object
 
 M.to_str = function(ptr, len)
   if ptr == nil then

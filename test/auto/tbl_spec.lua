@@ -981,5 +981,160 @@ describe("sqlite.tbl", function()
       end)
     end)
   end)
+
+  describe(":index access", function()
+    local db_path = ":memory:" or "/tmp/idx_db"
+    -- vim.loop.fs_unlink(db_path)
+    db = sql:open(db_path)
+
+    describe("string_index:", function()
+      local kv = tbl("kvpair", {
+        key = { "text", primary = true, required = true, default = "none" },
+        len = "integer",
+      }, db)
+
+      it("access/insert-to table using primary key", function()
+        kv.a = { len = 1 }
+        eq({ key = "a", len = 1 }, kv.a)
+      end)
+
+      it("access/update a row field len", function()
+        -- eq({}, kv.a)
+        kv.a = { len = 1 }
+        kv.a.len = 2
+        eq(2, kv:where({ len = 2 }).len, "should have been set")
+        eq(2, kv.a.len, "should have been set")
+        kv.a.len = 3
+        eq({ key = "a", len = 3 }, kv.a, "should return values")
+      end)
+
+      it("remove a row using primary key", function()
+        kv.a = nil
+        eq(nil, kv:where { key = "a" }, "should be empty")
+        eq({}, kv.a, "should be empty")
+      end)
+
+      it("sets a row field len without creating the row first", function()
+        kv["some key with spaces :D"].len = 4
+        eq(kv["some key with spaces :D"], { key = "some key with spaces :D", len = 4 })
+        kv["some key with spaces :D"] = nil
+      end)
+
+      it("query using index", function()
+        kv.a.len, kv.b.len, kv.c.len = 1, 2, 3
+        eq(
+          {
+            { key = "a", len = 1 },
+            { key = "b", len = 2 },
+          },
+          kv[{
+            where = { len = { 1, 2, 3 } },
+            order_by = { asc = { "key", "len" } },
+            limit = 2,
+          }]
+        )
+      end)
+      it("bulk update", function()
+        kv[{ len = { 1, 2, 3 } }] = { len = 10 }
+        eq(
+          {
+            { key = "a", len = 10 },
+            { key = "b", len = 10 },
+          },
+          kv[{
+            order_by = { asc = { "key" } },
+            limit = 2,
+          }]
+        )
+      end)
+
+      it("insert with 0 or true to skip the primary key value.", function()
+        kv[true] = { len = 5 }
+        eq(5, kv.none.len)
+        kv[""] = { len = 6 }
+        eq({ key = "none", len = 6 }, kv:where { len = 6 })
+      end)
+    end)
+
+    describe("number_index", function()
+      local t = tbl("number_idx", { id = true, name = "integer" }, db)
+
+      it("passes string_index tests", function()
+        t[1] = { name = "sam" }
+        eq({ id = 1, name = "sam" }, t[1])
+        eq("sam", t:where({ id = 1 }).name, "should have been set")
+
+        t[2].name = "John"
+        eq({ id = 2, name = "John" }, t[2])
+        eq("John", t:where({ id = 2 }).name, "should have been set")
+        eq("John", t[2].name, "should have been set")
+
+        t[2] = nil
+        eq(nil, t:where { id = 2 }, "should be empty")
+        eq({}, t[2], "should be empty")
+
+        t[1].name, t[2].name, t[2].name = "sam", "tami", "ram"
+        eq(
+          {
+            { id = 1, name = "sam" },
+            { id = 2, name = "tami" },
+          },
+          t[{
+            where = { name = { "sam", "tami", "ram" } },
+            order_by = { asc = { "id" } },
+            limit = 2,
+          }]
+        )
+        t[{ id = { 1, 2, 3 } }] = { name = "none" }
+        eq(
+          {
+            { id = 1, name = "none" },
+            { id = 2, name = "none" },
+          },
+          t[{
+            order_by = { asc = { "id" } },
+            limit = 2,
+          }]
+        )
+      end)
+    end)
+
+    describe("Relationships", function()
+      local todos = tbl("todos_indexer", {
+        id = true,
+        title = "text",
+        project = {
+          reference = "projects.title",
+          required = true,
+          on_delete = "cascade",
+          on_update = "cascade",
+        },
+      }, db)
+
+      local projects = tbl("projects", {
+        title = { type = "text", primary = true, required = true, unique = true },
+        deadline = { "date", default = db.lib.date "now" },
+      }, db)
+
+      it("create new table with default values", function()
+        projects.neovim = {}
+        eq(true, projects.neovim.deadline == os.date "!%Y-%m-%d")
+        projects["sqlite"] = {}
+        --- TODO: if you have sqilte.lua todos[2] return empty table
+      end)
+
+      it("fails if foregin key doesn't exists", function()
+        eq(
+          false,
+          pcall(function()
+            todos[2].project = "ram"
+          end)
+        )
+      end)
+    end)
+
+    -- vim.loop.fs_unlink(db_path)
+  end)
+
   clean()
 end)
