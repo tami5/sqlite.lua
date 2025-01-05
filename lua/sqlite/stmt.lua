@@ -302,7 +302,7 @@ function sqlstmt:bind(...)
 
     for k, v in pairs(names) do
       local index = parameter_index_cache[k] or table.remove(anon_indices, 1)
-      if ((type(v) == "string" and v:match "^[%S]+%(.*%)$") and flags.ok or self:bind(index, v)) ~= flags.ok then
+      if ((type(v) == "function") and flags.ok or self:bind(index, v)) ~= flags.ok then
         error("sqlite.lua error at stmt:bind(), failed to bind a given value '%s'. Please report issue."):format(v)
       end
     end

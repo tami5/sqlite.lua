@@ -1,4 +1,5 @@
 local p = require "sqlite.parser"
+local fn = require("sqlite.strfun").fn
 local eq = assert.are.same
 
 describe("parse", function()
@@ -8,7 +9,7 @@ describe("parse", function()
       eq(
         "insert into todo (date, id) values(date('now'), :id)",
         p.insert(tbl, { values = {
-          date = "date('now')",
+          date = fn "date('now')",
           id = 1,
         } })
       )
@@ -254,6 +255,20 @@ describe("parse", function()
       }
 
       eq(table.concat(expected, ""), passed, "should be identical")
+    end)
+  end)
+
+  describe("[select]", function()
+    it('works with [select] = "a single string"', function()
+      local defs = {
+        select = {
+          "id",
+          z = fn "date('now')",
+        },
+      }
+      local expected = "select id, date('now') as z from people"
+      local passed = p.select("people", defs)
+      eq(expected, passed, "should be identical")
     end)
   end)
 

@@ -67,7 +67,7 @@ end
 ---@usage `sqlstrftime('%s','now') - strftime('%s','2014-10-07 02:34:56')` -> 2110042
 M.strftime = function(format, timestring)
   local str = [[strftime('%s', %s)]]
-  return customstr(str:format(format, ts(timestring)))
+  return M.fn(str:format(format, ts(timestring)))
 end
 
 ---Return the number of days since noon in Greenwich on November 24, 4714 B.C.
@@ -130,6 +130,12 @@ end
 ---@return string
 M.cast = function(source, as)
   return string.format("cast(%s as %s)", source, as)
+end
+
+M.fn = function(s)
+  return function()
+    return s
+  end
 end
 
 return M

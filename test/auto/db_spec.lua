@@ -384,7 +384,10 @@ describe("sqlite.db", function()
 
     it("evaluates sqlite functions", function()
       db:eval "create table testa(id integer primary key, date text, title text)"
-      db:insert("testa", { title = "fd", date = db.lib.strftime "%H:%M:%S" })
+      db:insert("testa", {
+        title = "fd",
+        date = db.lib.strftime "%H:%M:%S",
+      })
 
       local res = db:eval [[select * from testa]]
       eq(os.date "!%H:%M:%S", res[1].date)
@@ -546,9 +549,9 @@ describe("sqlite.db", function()
   end)
 
   describe(":select", function()
-    if vim.fn.executable("curl") then
-        pending("'curl' program is not available")
-        return
+    if vim.fn.executable "curl" then
+      pending "'curl' program is not available"
+      return
     end
     local db = sql:open(path)
     local posts, users

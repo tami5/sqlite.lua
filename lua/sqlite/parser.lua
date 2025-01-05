@@ -125,8 +125,8 @@ local pvalues = function(defs, kv)
 
   local keys = {}
   for k, v in u.opairs(defs) do
-    if type(v) == "string" and v:match "^[%S]+%(.*%)$" then
-      tinsert(keys, v)
+    if type(v) == "function" then
+      tinsert(keys, v())
     else
       tinsert(keys, ":" .. k)
     end
@@ -270,7 +270,8 @@ local pselect = function(select)
       if type(k) == "number" then
         tinsert(items, v)
       else
-        tinsert(items, ("%s as %s"):format(v, k))
+        local z = type(v) == "function" and v() or v
+        tinsert(items, ("%s as %s"):format(z, k))
       end
     end
 
@@ -346,7 +347,7 @@ local opts_to_str = function(tbl)
       end
     end,
     default = function(v)
-      v = (type(v) == "string" and v:match "^[%S]+%(.*%)$") and "(" .. tostring(v) .. ")" or v
+      v = type(v) == "function" and "(" .. tostring(v()) .. ")" or v
       local str = "default "
       if tbl["required"] then
         return "on conflict replace " .. str .. v
